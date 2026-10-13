@@ -1,0 +1,134 @@
+html
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Game Đuổi Bắt: Chạy Trốn Heo Rừng</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; background: #2c3e50; color: white; }
+        canvas { background: #27ae60; display: block; margin: 20px auto; border: 4px solid #fff; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        h1 { margin-top: 20px; }
+        p { font-size: 18px; }
+    </style>
+</head>
+<body>
+
+    <h1>🏃‍♂️ CHẠY TRỐN HEO RỪNG ĐIÊN 🐗</h1>
+    <p>Sử dụng <b>4 phím mũi tên</b> để điều khiển Người di chuyển. Sống sót càng lâu điểm càng cao!</p>
+    <p><b>Điểm số (Thời gian): <span id="scoreText">0</span> giây</b></p>
+    
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Cấu hình nhân vật NGƯỜI
+        let player = {
+            x: 100,
+            y: 200,
+            size: 20,
+            speed: 4,
+            color: "#3498db" // Màu xanh dương đại diện cho Người
+        };
+
+        // Cấu hình HEO RỪNG
+        let boar = {
+            x: 500,
+            y: 200,
+            size: 25,
+            speed: 1.5, // Tốc độ ban đầu của heo rừng
+            color: "#e74c3c" // Màu đỏ đại diện cho Heo rừng hung dữ
+        };
+
+        let score = 0;
+        let gameOver = false;
+        let keys = {};
+
+        // Bắt sự kiện nhấn phím
+        window.addEventListener("keydown", function(e) { keys[e.code] = true; });
+        window.addEventListener("keyup", function(e) { keys[e.code] = false; });
+
+        // Hàm tính khoảng cách giữa 2 nhân vật để kiểm tra va chạm
+        function checkCollision(obj1, obj2) {
+            let distX = obj1.x - obj2.x;
+            let distY = obj1.y - obj2.y;
+            let distance = Math.sqrt(distX * distX + distY * distY);
+            return distance < (obj1.size + obj2.size) / 2;
+        }
+
+        // Tăng điểm theo thời gian sống sót và tăng độ khó của Heo rừng
+        setInterval(function() {
+            if (!gameOver) {
+                score++;
+                document.getElementById("scoreText").innerText = score;
+                
+                // Cứ mỗi 5 giây, heo rừng sẽ chạy nhanh thêm một chút!
+                if (score % 5 === 0) {
+                    boar.speed += 0.3;
+                }
+            }
+        }, 1000);
+
+        // Vòng lặp chính của Game (Cập nhật và Vẽ liên tục)
+        function gameLoop() {
+            if (gameOver) return;
+
+            // 1. XÓA MÀN HÌNH CŨ
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 2. DI CHUYỂN NGƯỜI (PLAYER) TỪ BÀN PHÍM
+            if (keys["ArrowUp"] && player.y > player.size) player.y -= player.speed;
+            if (keys["ArrowDown"] && player.y < canvas.height - player.size) player.y += player.speed;
+            if (keys["ArrowLeft"] && player.x > player.size) player.x -= player.speed;
+            if (keys["ArrowRight"] && player.x < canvas.width - player.size) player.x += player.speed;
+
+            // 3. THUẬT TOÁN HEO RỪNG TỰ ĐUỔI THEO NGƯỜI
+            // Nếu người ở bên phải heo -> heo đi sang phải. Ngược lại heo đi sang trái.
+            if (boar.x < player.x) boar.x += boar.speed;
+            else if (boar.x > player.x) boar.x -= boar.speed;
+
+            // Nếu người ở phía dưới heo -> heo đi xuống. Ngược lại heo đi lên.
+            if (boar.y < player.y) boar.y += boar.speed;
+            else if (boar.y > player.y) boar.y -= boar.speed;
+
+            // 4. VẼ NGƯỜI (Hình tròn xanh)
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+            ctx.fillStyle = player.color;
+            ctx.fill();
+            ctx.closePath();
+
+            // Vẽ mắt cho người để nhìn rõ hướng
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(player.x - 5, player.y - 5, 4, 4);
+            ctx.fillRect(player.x + 3, player.y - 5, 4, 4);
+
+            // 5. VẼ HEO RỪNG (Hình tròn đỏ to hơn)
+            ctx.beginPath();
+            ctx.arc(boar.x, boar.y, boar.size, 0, Math.PI * 2);
+            ctx.fillStyle = boar.color;
+            ctx.fill();
+            ctx.closePath();
+
+            // Vẽ thêm 2 cái răng nanh màu trắng cho Heo rừng trông hung dữ
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(boar.x - 8, boar.y + 4, 4, 8);
+            ctx.fillRect(boar.x + 4, boar.y + 4, 4, 8);
+
+            // 6. KIỂM TRA XEM HEO ĐÃ BẮT ĐƯỢC NGƯỜI CHƯA
+            if (checkCollision(player, boar)) {
+                gameOver = true;
+                alert("Ối! Bạn đã bị heo rừng húc trúng! Điểm của bạn là: " + score + " giây.");
+                document.location.reload(); // Chơi lại từ đầu
+            }
+
+            // Gọi lại hàm vẽ ở khung hình tiếp theo
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Kích hoạt game chạy
+        gameLoop();
+    </script>
+</body>
+</html>
